@@ -21,6 +21,16 @@ export class MainScene extends Phaser.Scene {
         this.isPaused = false;
         this.pauseOverlay = null;
         this.pauseMenuContainer = null;
+        this.escKey = null;
+        this.pauseButton = null;
+        this.pauseIcon = null;
+    }
+
+    init() {
+        
+    this.isPaused = false;
+        this.pauseOverlay = null;
+        this.pauseMenuContainer = null;
     }
 
     create() {
@@ -66,7 +76,15 @@ export class MainScene extends Phaser.Scene {
         this.createPauseButton();
         
         
-        this.input.keyboard.on('keydown-ESC', () => {
+        if (this.escKey) {
+            this.escKey.destroy();
+        }
+        
+        
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        
+        
+        this.escKey.on('down', () => {
             console.log('ESC нажата');
             this.togglePause();
         });
@@ -74,32 +92,38 @@ export class MainScene extends Phaser.Scene {
 
     createPauseButton() {
         
-        const pauseButton = this.add.rectangle(1250, 30, 40, 40, 0xffffff, 0.8)
+        if (this.pauseButton) {
+            this.pauseButton.destroy();
+        }
+        if (this.pauseIcon) {
+            this.pauseIcon.destroy();
+        }
+        
+        
+        this.pauseButton = this.add.rectangle(1250, 30, 40, 40, 0xffffff, 0.8)
             .setInteractive({ useHandCursor: true })
             .setDepth(1000);
         
-        const pauseIcon = this.add.text(1250, 30, '⏸', {
+        this.pauseIcon = this.add.text(1250, 30, '⏸', {
             fontSize: '28px',
             color: '#000000'
         }).setOrigin(0.5).setDepth(1000);
         
-        pauseButton.on('pointerdown', () => {
+        this.pauseButton.on('pointerdown', () => {
             console.log('Кнопка паузы нажата');
             this.togglePause();
         });
         
-        pauseButton.on('pointerover', () => pauseButton.setFillStyle(0xcccccc));
-        pauseButton.on('pointerout', () => pauseButton.setFillStyle(0xffffff));
+        this.pauseButton.on('pointerover', () => this.pauseButton.setFillStyle(0xcccccc));
+        this.pauseButton.on('pointerout', () => this.pauseButton.setFillStyle(0xffffff));
     }
 
     togglePause() {
         console.log('togglePause вызван, isPaused:', this.isPaused);
         
         if (!this.isPaused) {
-            
             this.isPaused = true;
             this.scene.pause('MainScene');
-            
             
             this.scene.launch('PauseMenu', {
                 mainScene: this
@@ -107,11 +131,32 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
-    
     resumeGame() {
         console.log('resumeGame вызван');
         this.isPaused = false;
         this.scene.resume('MainScene');
+    }
+
+    shutdown() {
+        console.log('MainScene выгружается');
+        
+        if (this.escKey) {
+            this.escKey.destroy();
+            this.escKey = null;
+        }
+        
+        if (this.pauseButton) {
+            this.pauseButton.destroy();
+            this.pauseButton = null;
+        }
+        if (this.pauseIcon) {
+            this.pauseIcon.destroy();
+            this.pauseIcon = null;
+        }
+        
+        this.time.removeAllEvents();
+        
+        this.tweens.killAll();
     }
 
     preload() {

@@ -15,7 +15,7 @@ export class MainMenu extends Phaser.Scene {
         
         this.cameras.main.setBackgroundColor('#1a1a2e');
         
-        const title = this.add.text(640, 100, '2D X-COM', {
+        const title = this.add.text(640, 100, '2D-X-COM', {
             fontSize: '64px',
             fontFamily: 'Arial Black',
             color: '#ffffff',
