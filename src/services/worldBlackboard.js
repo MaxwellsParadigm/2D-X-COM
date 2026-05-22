@@ -8,25 +8,6 @@ export class WorldBlackboard {
         this.scene = scene;
     }
 
-    getUnits(alive = true) {
-        const units = this.scene.unitManager.allUnits ?? [];
-        return alive ? units.filter(unit => this.isAlive(unit)) : units;
-    }
-
-    getEnemyUnits(alive = true) {
-        const units = this.scene.unitManager.enemyUnits ?? [];
-        return alive ? units.filter(unit => this.isAlive(unit)) : units;
-    }
-
-    getPlayerUnits(alive = true) {
-        const units = this.scene.unitManager.playerUnits ?? [];
-        return alive ? units.filter(unit => this.isAlive(unit)) : units;
-    }
-
-    isAlive(unit) {
-        return unit && unit.hp > 0;
-    }
-
     getUnitTile(unit) {
         if (!unit)
             return null;
@@ -86,12 +67,16 @@ export class WorldBlackboard {
         return MathUtils.gridDistance(pos1, pos2);
     }
 
+    isEnemyUnitVisible(unit) {
+        return this.scene.fogOfWar.isExplored(this.getUnitTile(unit));
+    }
+
     getClosestPlayer(unit) {
-        return this.getClosestUnit(this.getPlayerUnits(), unit);
+        return this.getClosestUnit(this.scene.unitManager.getPlayerUnits(), unit);
     }
 
     getClosestEnemy(unit) {
-        return this.getClosestUnit(this.getEnemyUnits(), unit);
+        return this.getClosestUnit(this.scene.unitManager.getEnemyUnits(), unit);
     }
 
     getClosestTile(tiles, tile) {
@@ -107,6 +92,36 @@ export class WorldBlackboard {
         return best;
     }
     
+    getTheMostDistantTileFromPlayers(tiles, currentTile, checkRange) {
+        return this._getTheMostDistantTileFrom(this.scene.unitManager.getPlayerUnits(), tiles, currentTile, checkRange);
+    }
+
+    getTheMostDistantTileFromEnemies(tiles, currentTile, checkRange) {
+        return this._getTheMostDistantTileFrom(this.scene.unitManager.getEnemyUnits(), tiles, currentTile, checkRange);
+    }
+
+    _getTheMostDistantTileFrom(units, tiles, currentTile, checkRange) {
+        if (!units || !tiles || !currentTile || !checkRange)
+            return null;
+
+        let bestTile = null;
+        let maxDist = -Infinity;
+
+        for (const t of tiles) {
+            const distancesSum = MathUtils.sum(
+                units.filter(unit => this.distanceBetweenTiles(this.getUnitTile(unit), currentTile) <= checkRange)
+                     .map(unit => this.distanceBetweenTiles(this.getUnitTile(unit), t))
+            );
+            
+            if (distancesSum > maxDist) {
+                maxDist = distancesSum;
+                bestTile = t;
+            }
+        }
+
+        return bestTile;
+    }
+
     getClosestUnit(units, unit) {
         let best = null;
 
@@ -121,7 +136,7 @@ export class WorldBlackboard {
     }
 
     getAlliesInRange(unit, range) {
-        let allies = unit.type === 'player' ? this.getPlayerUnits() : this.getEnemyUnits();
+        let allies = unit.type === 'player' ? this.scene.unitManager.getPlayerUnits() : this.scene.unitManager.getEnemyUnits();
         allies = allies.filter((ally) => ally !== unit);
         return allies.filter((ally) => this.distanceBetweenUnits(unit, ally) <= range);
     }
@@ -131,7 +146,7 @@ export class WorldBlackboard {
         if (tile?.unit)
             return tile.unit;
 
-        return this.getUnits(false).find((unit) => {
+        return this.scene.unitManager.getUnits(false).find((unit) => {
             const pos = this.getUnitGridPosition(unit);
             return pos && pos.x === gx && pos.y === gy;
         }) ?? null;

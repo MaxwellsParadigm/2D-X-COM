@@ -13,15 +13,17 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value));
  * Система принятия решений для поддерживающего врага (мага), который может накладывать баффы на союзников.
  */
 export class SupportEnemyAI {
-    constructor(blackboard, cfg = {}) {
+    constructor(unitManager, blackboard, cfg = {}) {
+        this.unitManager = unitManager;
         this.blackboard = blackboard;
         this.cfg = {
             neighborRange: cfg.neighborRange ?? 3,
             maxDistance: cfg.maxDistance ?? null,
             damageNormMax: cfg.damageNormMax ?? 30,
+            moveRangeNormMax: cfg.moveRangeNormMax ?? 5,
             buffSettings: {
                 speed: { value: 1, duration: 2 },
-                attack: { value: 4, duration: 2 },
+                attack: { value: 10, duration: 2 },
                 extra_turn: { value: 1, duration: 1 },
                 ...cfg.buffSettings,
             },
@@ -29,7 +31,7 @@ export class SupportEnemyAI {
     }
 
     getRankedCandidates(buffType, supportUnit) {
-        const candidates = this.blackboard
+        const candidates = this.unitManager
             .getEnemyUnits()
             .filter((unit) => unit !== supportUnit);
 
@@ -91,7 +93,7 @@ export class SupportEnemyAI {
     }
 
     _canReceive(buffType, unit) {
-        if (!unit?.isAlive) 
+        if (!unit?.isAlive || !this.blackboard.isEnemyUnitVisible(unit)) 
             return false;
 
         if (buffType === BUFF_TYPES.EXTRA_TURN) {
@@ -107,39 +109,43 @@ export class SupportEnemyAI {
 
         return {
             distToPlayer: closestPlayer ? closestPlayer.distance : maxDistance,
-            distToSupport: supportUnit ? this.blackboard.distanceBetween(unit, supportUnit) : maxDistance,
+            distToSupport: supportUnit ? this.blackboard.distanceBetweenUnits(unit, supportUnit) : maxDistance,
             alliesNearby: this.blackboard.getAlliesInRange(unit, this.cfg.neighborRange).length,
             hpRatio: unit.maxHp > 0 ? unit.hp / unit.maxHp : 0,
-            apRatio: unit.maxAp > 0 ? unit.ap / unit.maxAp : 0,
+            moveRange: unit.moveRange,
             damagePotential: ((unit.attack ?? 0) * (unit.accuracy ?? 0)) / 100,
         };
     }
 
+    // Нужно балансить и улучшать
     _scoreCandidate(buffType, unit, features) {
         const maxDistance = this._getMaxDistance();
-        const distNorm = clamp01(features.distToPlayer / maxDistance);
+        const distNorm = clamp01(features.distToPlayer / maxDistance + 0.2);
         const closeNorm = 1 - distNorm;
-        const apDeficit = clamp01(1 - features.apRatio);
-        const hpRatio = clamp01(features.hpRatio);
+        const moveRangeDeficitNorm = clamp01(1 - features.moveRange / this.cfg.moveRangeNormMax);
+        const hpDeficit = clamp01(1 - features.hpRatio);
         const damageNorm = clamp01(features.damagePotential / this.cfg.damageNormMax);
         const allyNorm = clamp01(features.alliesNearby / 4);
         const roleBonus = this._roleBonus(buffType, unit.role);
 
+        // Надо проверять собирается ли куда-то идти
         if (buffType === BUFF_TYPES.SPEED) {
-            return clamp01(0.45 * distNorm + 0.35 * apDeficit + 0.2 * roleBonus);
+            return clamp01(0.5 * moveRangeDeficitNorm + 0.3 * damageNorm + 0.1 * distNorm + 0.1 * roleBonus);
         }
 
+        // Надо проверять может ли атаковать на этом ходу
         if (buffType === BUFF_TYPES.ATTACK) {
             return clamp01(0.5 * damageNorm + 0.35 * closeNorm + 0.15 * roleBonus);
         }
 
+        // Если будет что-то делать
         if (buffType === BUFF_TYPES.EXTRA_TURN) {
             return clamp01(
-                0.45 * damageNorm +
-                0.25 * closeNorm +
-                0.2 * hpRatio +
-                0.1 * allyNorm +
-                0.1 * roleBonus
+                0.5 * damageNorm +
+                0.2 * closeNorm +
+                0.1 * hpDeficit +
+                // 0.1 * allyNorm +
+                0.2 * roleBonus
             );
         }
 
@@ -155,7 +161,7 @@ export class SupportEnemyAI {
             return 0;
 
         const map = {
-            speed: { swarm: 0.4, brute: 0.2, sniper: 0.1 },
+            speed: { brute: 0.6, sniper: 0.2, swarm: 0.1 },
             attack: { brute: 0.6, sniper: 0.4, swarm: 0.2 },
             extra_turn: { sniper: 0.7, brute: 0.4, swarm: 0.1 },
         };

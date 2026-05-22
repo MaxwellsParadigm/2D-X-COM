@@ -41,18 +41,14 @@ export class MainScene extends Phaser.Scene {
 
         this.unitManager.createUnits(this.tilemap);
 
-        this.supportAI = new SupportEnemyAI(this.blackboard);
+        this.supportAI = new SupportEnemyAI(this.unitManager, this.blackboard);
         
         this.createUI();
-
 
         this.fogOfWar = new FogOfWar(this, this.tilemap, { visionRange: 7 });
         this.fogOfWar.render();
 
-
-        const playerUnits = this.unitManager.allUnits.filter(u => u.type === 'player');
-        this.fogOfWar.update(playerUnits, this.unitManager.allUnits, this.selectedUnit);
-        
+        this.fogOfWar.update(this.unitManager.playerUnits, this.unitManager.allUnits, this.selectedUnit);
 
         this.unitManager.playerUnits.forEach(u => u.resetActions());
         this.uiManager.updateHelpText();

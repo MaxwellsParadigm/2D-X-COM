@@ -77,8 +77,7 @@ export class Unit {
         this.buffs.push(entry);
 
         if (entry.type === 'speed') {
-            this.maxAp += entry.value;
-            this.ap = Math.min(this.ap + entry.value, this.maxAp);
+            this.moveRange += entry.value
         } else if (entry.type === 'attack') {
             this.attack += entry.value;
         } else if (entry.type === 'extra_turn') {
@@ -86,6 +85,7 @@ export class Unit {
         }
 
         // console.log(`${this.name} receives buff: ${entry.type} (value: ${entry.value}, duration: ${entry.duration})`);
+        this.showBuffAnimation(entry.type, entry.value);
 
         return entry;
     }
@@ -119,14 +119,67 @@ export class Unit {
 
     _revertBuff(buff) {
         if (buff.type === 'speed') {
-            this.maxAp = Math.max(1, this.maxAp - buff.value);
-            this.ap = Math.min(this.ap, this.maxAp);
+            this.moveRange = Math.max(0, this.moveRange - buff.value);
         } else if (buff.type === 'attack') {
             this.attack = Math.max(0, this.attack - buff.value);
         } else if (buff.type === 'extra_turn') {
             this.extraTurnCharges = Math.max(0, this.extraTurnCharges - buff.value);
         }
     }
+
+    showBuffAnimation(buffType, value) {
+    const buffConfig = {
+        'speed': { text: '⚡', color: '#00ff00' },
+        'attack': { text: '⚔️', color: '#ff4444' },
+        'extra_turn': { text: '🔄', color: '#4488ff' },
+    };
+
+    const config = buffConfig[buffType];
+    
+    const buffText = this.scene.add.text(
+        this.sprite.x,
+        this.sprite.y - 60,
+        `${config.text}`,
+        {
+            fontSize: '25px',
+            fontFamily: 'Arial',
+            color: config.color,
+            stroke: '#000000',
+            strokeThickness: 3,
+            fontStyle: 'bold'
+        }
+    );
+    
+    buffText.setOrigin(0.5);
+    buffText.setDepth(100);
+
+    this.scene.tweens.add({
+        targets: buffText,
+        y: buffText.y - 40,
+        alpha: { from: 1, to: 0 },
+        scale: { from: 1.2, to: 0.8 },
+        duration: 1500,
+        ease: 'Power2',
+        onComplete: () => {
+            buffText.destroy();
+        }
+    });
+
+    this.scene.tweens.add({
+        targets: buffText,
+        scale: { from: 1.5, to: 1.2 },
+        duration: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+            this.scene.tweens.add({
+                targets: buffText,
+                scale: 1,
+                duration: 300,
+                ease: 'Power1'
+            });
+        }
+    });
+}
     
     setupInteractivity() {
         this.sprite.setInteractive();

@@ -16,7 +16,7 @@ export class UnitManager {
         const playerDefs = [
             { name: 'Медик', hp: 100, attack: 10, defense: 8, accuracy: 70, role: 'medic', moveRange: 3 },
             { name: 'Снайпер', hp: 80, attack: 15, defense: 5, accuracy: 85, role: 'sniper', moveRange: 3 },
-            { name: 'Штурмовик', hp: 120, attack: 18, defense: 10, accuracy: 65, role: 'assault', moveRange: 3 },
+            { name: 'Штурмовик', hp: 120, attack: 18, defense: 10, accuracy: 65, role: 'assault', moveRange: 2 },
         ];
         const enemyDefs = [
             { name: 'Мелкий', hp: 55, ap: 2, attack: 10, defense: 3, accuracy: 60, role: 'swarm', moveRange: 5 },
@@ -44,6 +44,21 @@ export class UnitManager {
             this.enemyUnits.push(unit);
             this.allUnits.push(unit);
         });
+    }
+
+    getUnits(alive = true) {
+        const units = this.scene.unitManager.allUnits ?? [];
+        return alive ? units.filter(unit => unit.isAlive) : units;
+    }
+
+    getEnemyUnits(alive = true) {
+        const units = this.scene.unitManager.enemyUnits ?? [];
+        return alive ? units.filter(unit => unit.isAlive) : units;
+    }
+
+    getPlayerUnits(alive = true) {
+        const units = this.scene.unitManager.playerUnits ?? [];
+        return alive ? units.filter(unit => unit.isAlive) : units;
     }
 
     killUnit(unit) {
