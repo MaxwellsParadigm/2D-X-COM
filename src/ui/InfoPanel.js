@@ -111,6 +111,7 @@ export class InfoPanel {
     }
 
     update(unit) {
+        this._currentUnit = unit;
         this.show();
 
         this.nameText.setText(unit.name);
@@ -187,6 +188,7 @@ export class InfoPanel {
     }
 
     hide() {
+        this.scene.targetManager?.clearActionRange();
         this.container.setVisible(false);
     }
 }

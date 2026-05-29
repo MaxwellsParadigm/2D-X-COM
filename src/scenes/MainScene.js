@@ -55,6 +55,7 @@ export class MainScene extends Phaser.Scene {
         this.actionMode = null;
         this.highlightedTiles = [];
         this.highlightedTargets = [];
+        this.rangeHighlights = [];
 
         this.createMap();
         this.createTextures();
