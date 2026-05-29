@@ -51,20 +51,15 @@ export class WorldBlackboard {
     }
 
     distanceBetweenUnits(a, b) {
-        const posA = this.getUnitGridPosition(a);
-        const posB = this.getUnitGridPosition(b);
-
-        if (!posA || !posB)
-            return Infinity;
-
-        return MathUtils.gridDistance(posA, posB);
+        return this.distanceBetweenTiles(this.getUnitTile(a), this.getUnitTile(b));
     }
 
     distanceBetweenTiles(t1, t2) {
-        const pos1 = { x: t1.gridX, y: t1.gridY };
-        const pos2 = { x: t2.gridX, y: t2.gridY };
-
-        return MathUtils.gridDistance(pos1, pos2);
+        const path = this.scene.pathfinder.findPath(t1, t2, Infinity, true);
+        if (!path)
+            return Infinity;
+        
+        return path.length;
     }
     
     isEnemyUnitVisible(unit) {
